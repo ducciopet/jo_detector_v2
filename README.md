@@ -1,7 +1,7 @@
-# onboard_detector_v2
+# jo_detector_v2
 
-Ground-up rewrite of [`onboard_detector`](../onboard_detector), built one
-stage at a time. `onboard_detector` is untouched and stays the deployed
+Ground-up rewrite of [`jo_detector`](../jo_detector), built one
+stage at a time. `jo_detector` is untouched and stays the deployed
 package (referenced in `docker/Dockerfile`, `run_detector.launch.py`, etc.)
 until a given stage here is proven out and ready to take over.
 
@@ -22,7 +22,7 @@ until a given stage here is proven out and ready to take over.
    aligned to a mask, not just a raw depth crop).
 3. **Sloped terrain** (done, folded into phase 1) — `static_structures_node`
    fits a real plane (`ax + by + cz + d = 0`, EMA-tracked, one PER CAMERA
-   — `CameraSource::floor_plane_global`) instead of onboard_detector's
+   — `CameraSource::floor_plane_global`) instead of jo_detector's
    original flat `z = c` ground-height estimate, and both the LiDAR and
    depth crops in `preprocessing_node` filter against the union of the
    space below every camera's plane. See Status below and
@@ -59,7 +59,7 @@ profile.
 different workflow (tuning, with rviz, run in isolation). Everything else
 lives in `run_detector.launch.py`, the single "launch the pipeline" file
 that grows a node at a time as phases are built (mirrors how
-`onboard_detector/launch/run_detector.launch.py` grew: detector_node, then
+`jo_detector/launch/run_detector.launch.py` grew: detector_node, then
 static_structures_node, then yolo_node, ...). When the detection phase exists,
 its `Node(...)` and config lookup get added to that same file, not to a new
 `run_detection.launch.py`.
@@ -71,14 +71,14 @@ the full technical reference (every node's I/O, the LiDAR/depth pipelines
 step by step, the wall registry). This section stays a narrative changelog.
 
 **Calibration**: `src/calibration_icp_node.cpp` is a straight port of
-`onboard_detector`'s node of the same name — same gtsam_points/GICP
+`jo_detector`'s node of the same name — same gtsam_points/GICP
 registration, same manual lidar/depth sync (message_filters' own
 `Synchronizer<ApproximateTime>` doesn't work here: at least the `zstd`
 image_transport decoder returns a zeroed `header.stamp`, so scans were
 cached and matched by arrival time instead — see the comment on
 `lidar_cache_` in the file). The only change from the original: parameter
-names dropped the stale `onboard_detector.` prefix (`depth_intrinsics`, not
-`onboard_detector.depth_intrinsics`) for consistency with the flat naming
+names dropped the stale `jo_detector.` prefix (`depth_intrinsics`, not
+`jo_detector.depth_intrinsics`) for consistency with the flat naming
 `preprocessing_node.cpp` already uses. `run_calibration_icp.launch.py` is
 also a straight port, including `robot_tf_camera_frame` (use the bag/robot's
 own TF chain as the initial guess instead of a hand-measured static TF —
@@ -111,16 +111,16 @@ reference: `docs/framework_architecture.md`.
 
 **Wall/floor detection is now a separate, asynchronous node** —
 `src/static_structures_node.cpp` — architecturally a faithful port of
-`onboard_detector/scripts/wall_detector/wallDetector.{h,cpp}` (own
+`jo_detector/scripts/wall_detector/wallDetector.{h,cpp}` (own
 executable, own `rclcpp::spin()`, no coupling to `preprocessing_node`'s own
 callbacks, exactly like the original's `dynamicDetector`/`wall_detector_node`
-split, which `onboard_detector_v2` didn't have until this pass — wall/floor
+split, which `jo_detector_v2` didn't have until this pass — wall/floor
 detection used to run inline inside `preprocessing_node`'s own LiDAR
 callback). Two deliberate differences from the original: (1) it reads
 `preprocessing_node`'s already-voxel-downsampled — but NOT range/ground-
 cropped — LiDAR and per-camera depth clouds
-(`/onboard_detector_v2/lidar/voxelized_sensor`,
-`/onboard_detector_v2/<camera>/depth/voxelized_sensor`) instead of
+(`/jo_detector_v2/lidar/voxelized_sensor`,
+`/jo_detector_v2/<camera>/depth/voxelized_sensor`) instead of
 re-subscribing to raw sensor topics and re-voxelizing itself, so the
 expensive voxel-grid pass happens exactly once, shared; its own range crop
 still happens on the cheap, already-downsampled centroids. (2) floor is a
@@ -135,7 +135,7 @@ LiDAR's 360°, consistent-height scan is the better source for vertical
 walls across the whole range, while a downward-angled depth camera sees
 the floor immediately ahead at far higher density than the LiDAR's own
 sparse near-field rings, which is what actually matters for catching a
-slope early. Publishes `/onboard_detector_v2/static_structures/wall_markers`
+slope early. Publishes `/jo_detector_v2/static_structures/wall_markers`
 (`MarkerArray`, `ns="wall_bbox"` + `ns="floor"`), which `preprocessing_node`
 parses back into filtering planes (`onWallMarkers()`) and rviz subscribes
 to directly. See `docs/framework_architecture.md` §5.
@@ -148,7 +148,7 @@ output (from when detection still lived in `preprocessing_node`), so each
 scan's random subset gave the fitted plane's normal a different jitter;
 fixed by giving RANSAC a clean, deterministic-ish input (the voxelized
 clouds described above), plus a PCA `refitPlane` step (ported from
-`onboard_detector/wall_detector`, was missing here) that averages the
+`jo_detector/wall_detector`, was missing here) that averages the
 normal over all inliers instead of trusting the raw 3-point RANSAC
 candidate. (2) `WallBBoxRegistry::merge()`'s box-union never shrinks and
 freezes `rotation` at the first detection, so even the residual per-scan
@@ -212,7 +212,7 @@ list param, default `["front_camera"]`, this robot's cfg sets
 `["front_camera", "back_camera"]`) drives construction of one `CameraStream`
 per name in `preprocessing_node`'s constructor — each with its own topics,
 intrinsics, cached TF and publishers
-(`/onboard_detector_v2/<name>/depth/{cloud,processed,voxelized_sensor}`) —
+(`/jo_detector_v2/<name>/depth/{cloud,processed,voxelized_sensor}`) —
 and one `CameraSource` per name in `static_structures_node`'s own constructor,
 reading that last topic. Adding a camera is a cfg change, not a code
 change, as long as it follows the same `/<name>/camera/...` topic-naming
@@ -224,8 +224,8 @@ override applies to both, plus giving `static_structures_node`'s own
 automatically).
 
 **Wall registry**: persistent tracking across scans, ported from
-`onboard_detector/wall_detector_node`'s `WallBBoxRegistry` — see
-`include/onboard_detector_v2/wall_registry.hpp` and
+`jo_detector/wall_detector_node`'s `WallBBoxRegistry` — see
+`include/jo_detector_v2/wall_registry.hpp` and
 `docs/framework_architecture.md` §5. Lives in `static_structures_node` now (not
 `preprocessing_node`, see above). A fresh RANSAC detection merges into a
 matching existing entry (EMA-extend its length/height, EMA-blend its

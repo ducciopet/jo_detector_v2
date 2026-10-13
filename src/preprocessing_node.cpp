@@ -1,7 +1,7 @@
 /*
     FILE: preprocessing_node.cpp
     ---------------------------------
-    Phase 1 of the onboard_detector rewrite (see ../README.md).
+    Phase 1 of the jo_detector rewrite (see ../README.md).
 
     Sequential (no threading — see the discussion in the chat this came out
     of: at VLP-16 scan sizes the single-threaded cost is small enough that
@@ -10,7 +10,7 @@
 
     Wall/floor DETECTION does not happen in this file anymore — it moved to
     its own standalone, asynchronous node (static_structures_node.cpp), exactly
-    mirroring onboard_detector's own architecture (dynamicDetector doesn't
+    mirroring jo_detector's own architecture (dynamicDetector doesn't
     run wall RANSAC either — it consumes static_structures_node's output over
     ROS topics). This file's LiDAR pipeline is now:
       1. sensor-frame validity + range crop + distance-weighted subsample
@@ -55,7 +55,7 @@
     message (T_global_base * T_base_lidar) — one 4x4 matrix multiply per
     callback, not a TF buffer lookup/interpolation per callback. This
     mirrors dynamicDetector::ensureStaticTfs()/getLidarPose() in
-    onboard_detector, which does the same thing for the same reason.
+    jo_detector, which does the same thing for the same reason.
 
     Depth side: an arbitrary number of cameras (camera_names param — this
     robot has two, front_camera and back_camera, but nothing here assumes a
@@ -161,7 +161,7 @@
     lets static_structures_node also detect off every camera's depth cloud
     (more viewpoints = more evidence — a rear camera seeing a wall the
     LiDAR's own crop/subsample missed), not just LiDAR, unlike
-    onboard_detector/wall_detector_node's own precedent (depth contributed
+    jo_detector/wall_detector_node's own precedent (depth contributed
     only a simple bottom-rows ground estimate there, never full wall
     RANSAC).
 */
@@ -228,7 +228,7 @@ public:
         base_frame_ = this->declare_parameter("base_frame", std::string("base_link"));
         global_frame_ = this->declare_parameter("global_frame", std::string("odom"));
         // No calibration gate on the LiDAR path anymore — matches
-        // onboard_detector/dynamicDetector, which never gated its own
+        // jo_detector/dynamicDetector, which never gated its own
         // lidarOdomCB on calibration either (only static_structures_node's own
         // per-camera detection needs each camera's calibration TF — see
         // ensureCameraCalibrationTf below, still used for the depth crop's
@@ -279,7 +279,7 @@ public:
         // voxel_resolution_ above (which stays static_structures_node's shared
         // stage — Pass 2/pub_lidar_voxelized_ — untouched; calibration_icp_node
         // has its own separate pipeline entirely and never reads from here).
-        // Mirrors onboard_detector's dynamicDetector::lidarPoseCB/
+        // Mirrors jo_detector's dynamicDetector::lidarPoseCB/
         // lidarOdomCB: voxel-downsample only kicks in if the point count still
         // exceeds lidar_processed_downsample_threshold_ after Pass 1-3, starting
         // at lidar_processed_voxel_size_ and growing the leaf by 10% at a time
@@ -300,12 +300,12 @@ public:
         // than depth_processed_voxel_occupied_thresh_ points is dropped
         // entirely, unlike plain pcl::VoxelGrid which emits a centroid for
         // ANY occupied voxel, even a single-point one) but not a literal
-        // port of it: onboard_detector's own version keeps one raw,
+        // port of it: jo_detector's own version keeps one raw,
         // scan-order-arbitrary point per voxel once the count hits the
         // threshold; this one accumulates every point a qualifying voxel
         // gets and emits their centroid instead — see occupancyVoxelFilter()'s
         // own comment. Declared as a double, not an int, because the yaml
-        // value is written as N.0 — onboard_detector's own equivalent
+        // value is written as N.0 — jo_detector's own equivalent
         // (voxel_occupied_thresh) hit a rclcpp parameter-type mismatch when
         // that mismatch runs the other way (yaml float vs. declared int).
         // Runs on finishDepthCloud's `cloud` argument directly (full
@@ -359,7 +359,7 @@ public:
         // detection's class STRING into a small numeric index for the semantic-leaves cloud (see
         // publishSemanticLeaves's own comment on why a number, not the string, travels on the wire).
         {
-            const std::string class_names_path = ament_index_cpp::get_package_share_directory("onboard_detector_v2") +
+            const std::string class_names_path = ament_index_cpp::get_package_share_directory("jo_detector_v2") +
                 "/" + this->declare_parameter("yolo_class_names_path", std::string("cfg/coco.names"));
             std::ifstream f(class_names_path);
             std::string line;
@@ -399,20 +399,20 @@ public:
 
         rclcpp::QoS qos(10);
         pub_lidar_processed_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
-            "/onboard_detector_v2/lidar/processed", qos);
+            "/jo_detector_v2/lidar/processed", qos);
         // Tiny per-scan trigger (header only, stamp = the scan's own stamp),
         // published the moment a scan is accepted in onLidarOdom, before any
         // heavy processing — lets other nodes (YOLO detection) run ONE
         // inference per scan on the camera frame closest to it instead of
         // free-running on every frame.
         pub_scan_trigger_ = this->create_publisher<std_msgs::msg::Header>(
-            "/onboard_detector_v2/lidar/scan_trigger", qos);
+            "/jo_detector_v2/lidar/scan_trigger", qos);
         // Voxel-downsampled, NOT range/ground-cropped — the ONLY thing
         // static_structures_node's own LiDAR subscription reads (see the file
         // header and that node's own header comment). Sensor frame
         // (lidar_frame_), published straight from onLidarOdom's Pass 2.
         pub_lidar_voxelized_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
-            "/onboard_detector_v2/lidar/voxelized_sensor", qos);
+            "/jo_detector_v2/lidar/voxelized_sensor", qos);
         // static_structures_node's own output — walls (ns="wall_bbox") and each
         // camera's own fitted floor plane (ns="floor", one per camera),
         // parsed back into wall_planes_global_/floor_planes_global_ by
@@ -421,7 +421,7 @@ public:
         // separate publishDetectedPlanes() here anymore — rviz subscribes
         // to this same topic directly).
         sub_wall_markers_ = this->create_subscription<visualization_msgs::msg::MarkerArray>(
-            "/onboard_detector_v2/static_structures/wall_markers", qos,
+            "/jo_detector_v2/static_structures/wall_markers", qos,
             [this](const visualization_msgs::msg::MarkerArray::ConstSharedPtr& msg) { onWallMarkers(msg); });
 
         sub_lidar_.subscribe(this, lidar_topic_);
@@ -468,7 +468,7 @@ public:
                     lidar_frame_.c_str(), base_frame_.c_str(), global_frame_.c_str());
         RCLCPP_INFO(this->get_logger(), "  ground(bootstrap)=%.2f roof_offset=%.2f voxel=%.3f removal_margin=%.3f",
                     ground_height_, ground_roof_offset_, voxel_resolution_, wall_removal_margin_);
-        RCLCPP_INFO(this->get_logger(), "  wall/floor planes sourced from static_structures_node via /onboard_detector_v2/static_structures/wall_markers");
+        RCLCPP_INFO(this->get_logger(), "  wall/floor planes sourced from static_structures_node via /jo_detector_v2/static_structures/wall_markers");
     }
 
 private:
@@ -748,13 +748,13 @@ private:
 
         rclcpp::QoS qos(10);
         cam->pub_depth_cloud = this->create_publisher<sensor_msgs::msg::PointCloud2>(
-            "/onboard_detector_v2/" + name + "/depth/cloud", qos);
+            "/jo_detector_v2/" + name + "/depth/cloud", qos);
         cam->pub_depth_processed = this->create_publisher<sensor_msgs::msg::PointCloud2>(
-            "/onboard_detector_v2/" + name + "/depth/processed", qos);
+            "/jo_detector_v2/" + name + "/depth/processed", qos);
         cam->pub_depth_voxelized = this->create_publisher<sensor_msgs::msg::PointCloud2>(
-            "/onboard_detector_v2/" + name + "/depth/voxelized_sensor", qos);
+            "/jo_detector_v2/" + name + "/depth/voxelized_sensor", qos);
         cam->pub_depth_voxelized_global = this->create_publisher<sensor_msgs::msg::PointCloud2>(
-            "/onboard_detector_v2/" + name + "/depth/voxelized_global", qos);
+            "/jo_detector_v2/" + name + "/depth/voxelized_global", qos);
 
         // Raw (unaligned) depth is acquired only, never processed (see onRawDepth). An empty
         // depth_topic skips it: on the live robot every subscribed transport is one more
@@ -801,7 +801,7 @@ private:
                     while (cam->yolo_ring.size() > 3) cam->yolo_ring.pop_front();
                 });
             cam->pub_semantic_leaves = this->create_publisher<sensor_msgs::msg::PointCloud2>(
-                "/onboard_detector_v2/" + name + "/semantic_leaves", qos);
+                "/jo_detector_v2/" + name + "/semantic_leaves", qos);
         }
         if (!cam->yolo_mask_topic.empty()) {
             cam->sub_yolo_mask = this->create_subscription<sensor_msgs::msg::Image>(
@@ -819,7 +819,7 @@ private:
                 cam->ground_mask_topic, rclcpp::SensorDataQoS(),
                 [this, cam](const sensor_msgs::msg::Image::ConstSharedPtr& msg) { onGroundMask(*cam, msg); });
             cam->pub_ground_points = this->create_publisher<sensor_msgs::msg::PointCloud2>(
-                "/onboard_detector_v2/" + name + "/semantic_ground_points", qos);
+                "/jo_detector_v2/" + name + "/semantic_ground_points", qos);
         }
 
         // transient_local — matches what the RealSense driver (and this
@@ -978,7 +978,7 @@ private:
     // Parses static_structures_node's own MarkerArray publish back into
     // wall_planes_global_/floor_planes_global_ — the async replacement for
     // this file's own former inline RANSAC. Mirrors
-    // onboard_detector/dynamicDetector's wallMarkersCB exactly (same
+    // jo_detector/dynamicDetector's wallMarkersCB exactly (same
     // ns="wall_bbox" CUBE -> OBB parse), generalized to ALSO recover EVERY
     // camera's own floor plane, one per ns="floor" marker (static_structures_node
     // encodes each losslessly: orientation's local +Z axis is the plane
@@ -1357,7 +1357,7 @@ private:
     // its mode (peak bin) and expanding outward until the point density drops below yolo_leaf_valley_fraction of
     // the peak's own count (a VALLEY, not a fixed distance — see below for why), capped by
     // yolo_leaf_depth_tolerance as an absolute safety bound — so a wall or boxes sharing the same rectangle are
-    // left out. This used to anchor on the single NEAREST depth (as onboard_detector does) — correct for the
+    // left out. This used to anchor on the single NEAREST depth (as jo_detector does) — correct for the
     // common case (the detected object is the closest thing in its own box) but systematically wrong for a
     // PARTIALLY-OCCLUDED detection (visible through/around something nearer within the same inflated box, e.g. a
     // person behind boxes): the nearest-depth anchor would lock onto the occluder's own surface every time,
@@ -1638,11 +1638,11 @@ private:
     // why this exists and what it does differently from pcl::VoxelGrid. Key
     // collisions across voxel cells are astronomically unlikely at LiDAR/
     // depth-camera scales (points stay within a few hundred meters at most),
-    // so a plain hashed-index map is used instead of onboard_detector's own
+    // so a plain hashed-index map is used instead of jo_detector's own
     // fixed-size array + localSensorRange_ bound (voxelFilter/posToAddress)
     // — simpler, and doesn't need a separate range parameter.
     //
-    // Deliberately NOT a literal port of onboard_detector's voxelFilter(),
+    // Deliberately NOT a literal port of jo_detector's voxelFilter(),
     // which keeps a single RAW point per voxel — specifically whichever one
     // happens to arrive Nth in scan order once a voxel's running count hits
     // the threshold exactly. That point is arbitrary (an accident of pixel
@@ -1779,7 +1779,7 @@ private:
         // Density-gate filter for the processed/detection cloud specifically
         // — separate from depth_downsampled above (voxel_resolution_, stays
         // feeding pub_depth_voxelized only). Runs on the full-resolution
-        // `cloud`, not on depth_downsampled — onboard_detector's own
+        // `cloud`, not on depth_downsampled — jo_detector's own
         // voxelFilter() likewise runs on the raw deprojected points, not a
         // pre-downsampled cloud.
         pcl::PointCloud<pcl::PointXYZ>::Ptr depth_detection = occupancyVoxelFilter(cloud);
@@ -1997,7 +1997,7 @@ private:
         global_cloud.height = 1;
 
         // Pass 4: voxel downsample the general-purpose cloud — adaptive leaf
-        // size, matching onboard_detector's dynamicDetector::lidarPoseCB/
+        // size, matching jo_detector's dynamicDetector::lidarPoseCB/
         // lidarOdomCB (see lidar_processed_voxel_size_'s own declare_parameter
         // comment): only runs at all if still above the point budget, and
         // escalates the leaf size until back under it.

@@ -2,14 +2,14 @@ tracker_node:
   ros__parameters:
     global_frame: odom
 
-    # Association gates (reject before scoring) — same names/values as onboard_detector's own
+    # Association gates (reject before scoring) — same names/values as jo_detector's own
     # max_match_range / max_match_speed / max_relative_size_diff_match.
     track_max_match_dist: 2.0        # [m] max distance between a detection and a track's KALMAN-PREDICTED position
     track_max_match_speed: 8.0       # [m/s] max implied speed (pred distance / dt) to accept a match
     track_max_size_diff: 0.8         # max relative size difference (see relSizeDiff) to accept a match
     track_min_size_diff_floor: 0.15  # [m] absolute floor for relSizeDiff's denominator — a purely relative diff punishes small objects far more than large ones for the same absolute jitter (unsmoothed per-tick box size), spuriously rejecting the true match and risking a fallback to a nearby wrong candidate. No v1 equivalent (v1's objects were rarely this small).
 
-    # Association score weights — same names/values as onboard_detector's own match_*_score_weight.
+    # Association score weights — same names/values as jo_detector's own match_*_score_weight.
     track_match_pos_weight: 1.0        # distance to the Kalman-predicted position
     track_match_size_weight: 0.35      # relative size difference
     track_match_iou_weight: 0.15       # 2D IoU (axis-aligned footprint) vs the predicted position
@@ -84,7 +84,7 @@ tracker_node:
     track_duplicate_iou_thresh: 0.3    # v1: duplicateTrackIou2DThresh_
     track_duplicate_size_thresh: 0.5   # v1 ships 0 (effectively disabled) — see tracker_node.cpp's own comment
 
-    # Lifecycle — same names/values as onboard_detector's own min_confirm_hits / max_missed_frames. Confirmation
+    # Lifecycle — same names/values as jo_detector's own min_confirm_hits / max_missed_frames. Confirmation
     # is now MOTION-GATED for a non-classified track (v1: shouldConfirmTrack, a deliberate behavior change —
     # see the file header's own LIFECYCLE section): hits alone are no longer enough unless the track shows
     # actual observed motion, or is classified (which still confirms immediately).
@@ -132,7 +132,7 @@ tracker_node:
     # voting between this track's own points now and from the last matched tick, corroborating the KF estimate
     # for an UNCLASSIFIED track (see the PATH 1/3 split above). Needs dbscan_detector_node's fused/clusters
     # cloud (det_idx field) — subscribing here is what turns its publishing on (it's otherwise lazy).
-    fused_clusters_topic: /onboard_detector_v2/dbscan_detector/fused/clusters
+    fused_clusters_topic: /jo_detector_v2/dbscan_detector/fused/clusters
     track_point_vote_thresh: 0.7        # min vote ratio to count as corroborating evidence — v1: dynaVoteThresh_
     track_point_vote_max_points: 500    # safety cap: brute-force nearest-neighbor is O(n*m); v1 never capped this (its own clusters were smaller)
     point_vote_max_age: 0.5             # [s] ignore a stale clusters cloud

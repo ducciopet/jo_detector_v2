@@ -40,7 +40,7 @@ Visualization Manager:
     # run_detector.launch.py pipeline this node is normally a part of).
     # Pointed at the RAW topics (not /compressed): rviz's Image display
     # subscribes through image_transport itself, same convention as
-    # onboard_detector's own rviz/detector_jo_zotac.rviz "YOLO Detector"
+    # jo_detector's own rviz/detector_jo_zotac.rviz "YOLO Detector"
     # display.
     #
     # Two models, same reasoning as run_detector.launch.py's own

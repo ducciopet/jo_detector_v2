@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>onboard_detector_v2</name>
+  <name>jo_detector_v2</name>
   <version>0.1.0</version>
   <description>
-    Ground-up rewrite of onboard_detector, built one stage at a time (see
-    README.md for the phase plan). onboard_detector itself is untouched and
+    Ground-up rewrite of jo_detector, built one stage at a time (see
+    README.md for the phase plan). jo_detector itself is untouched and
     stays the deployed package until a given stage here is proven out.
   </description>
 
@@ -16,7 +16,7 @@
 
   <!-- Phase 1 (preprocessing + calibration) dependencies. Add more here as
        later phases are built (detection/segmentation, tracking+
-       classification), mirroring onboard_detector/package.xml rather than
+       classification), mirroring jo_detector/package.xml rather than
        front-loading everything now. -->
   <depend>rclcpp</depend>
   <depend>std_msgs</depend>
@@ -38,9 +38,9 @@
   <depend>realsense2_camera_msgs</depend>
 
   <!-- GICP-based depth<->lidar registration for calibration_icp_node (ported
-       from onboard_detector). Provided by the same gtsam/gtsam_points
+       from jo_detector). Provided by the same gtsam/gtsam_points
        install the glim submodule requires (see docker/Dockerfile); no
-       rosdep key here, matching onboard_detector/package.xml and
+       rosdep key here, matching jo_detector/package.xml and
        glim/package.xml which also resolve it outside rosdep. -->
   <depend>eigen</depend>
 
@@ -64,7 +64,7 @@
   <!-- Phase 2: yolo_seg_track_detector.py (segmentation + tracking
        prototype). vision_msgs for Detection2D/Detection2DArray output;
        torch/ultralytics/opencv are pip-installed in docker/Dockerfile (not
-       resolved via rosdep), matching onboard_detector/package.xml's own
+       resolved via rosdep), matching jo_detector/package.xml's own
        yolo_detector, which has no rosdep entries for them either. -->
   <depend>vision_msgs</depend>
 
