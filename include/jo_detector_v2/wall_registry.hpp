@@ -1,11 +1,11 @@
 /*
     FILE: wall_registry.hpp
     ---------------------------------
-    Persistent wall tracking, ported from onboard_detector/scripts/
+    Persistent wall tracking, ported from jo_detector/scripts/
     wall_detector/wallDetector.{h,cpp}'s WallBBox/WallBBoxRegistry —
     same algorithm (OBB-vs-OBB IoU/IoV via separating-axis theorem,
     EMA-merge on match, missed-frame-count expiry), header-only here
-    since onboard_detector_v2 doesn't split executables into
+    since jo_detector_v2 doesn't split executables into
     library-and-node yet (see ../README.md).
 
     Why this exists: a per-scan wall-plane RANSAC (see preprocessing_node.cpp)
@@ -22,8 +22,8 @@
     max_missed_frames does the entry get dropped, so one bad/occluded scan
     never erases an otherwise-persistent wall.
 */
-#ifndef ONBOARD_DETECTOR_V2_WALL_REGISTRY_HPP
-#define ONBOARD_DETECTOR_V2_WALL_REGISTRY_HPP
+#ifndef JO_DETECTOR_V2_WALL_REGISTRY_HPP
+#define JO_DETECTOR_V2_WALL_REGISTRY_HPP
 
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
@@ -32,7 +32,7 @@
 #include <algorithm>
 #include <limits>
 
-namespace onboard_detector_v2 {
+namespace jo_detector_v2 {
 
 // =====================================================================
 // WallBBox — oriented bounding box for a wall (or floor slab) segment.
@@ -297,16 +297,16 @@ private:
     //     with a rotation that's frozen at whichever detection happened to
     //     be "existing" first (this function never updates `rotation`) is
     //     exactly what made tracked walls grow thicker without bound every
-    //     scan — the bug reported against onboard_detector_v2's wall
-    //     detector (too thick/unrealistic vs. onboard_detector's own
-    //     static_structures_node, which onboard_detector_v2 is meant to match).
+    //     scan — the bug reported against jo_detector_v2's wall
+    //     detector (too thick/unrealistic vs. jo_detector's own
+    //     static_structures_node, which jo_detector_v2 is meant to match).
     //     EMA-blending the thickness and its local-X center instead lets
     //     the box settle at a stable value close to the true physical
     //     thickness (biased slightly wide by wall_ransac_inlier_threshold_'s
     //     own minimum-thickness floor — see buildBoxFromPlane in
     //     preprocessing_node.cpp — but bounded, not runaway). This is also
     //     the first real use of `weight`/merge_weight, previously an unused
-    //     parameter in both onboard_detector's original and this port.
+    //     parameter in both jo_detector's original and this port.
     //
     //     Getting the incoming thickness right matters: the FIRST version
     //     of this fix read it off the X-span of incoming's corners after
@@ -408,6 +408,6 @@ private:
     }
 };
 
-}  // namespace onboard_detector_v2
+}  // namespace jo_detector_v2
 
-#endif  // ONBOARD_DETECTOR_V2_WALL_REGISTRY_HPP
+#endif  // JO_DETECTOR_V2_WALL_REGISTRY_HPP

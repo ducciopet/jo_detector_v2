@@ -42,7 +42,7 @@ def _load_node_params(config_path, node_name):
 
 
 def _launch_setup(context, *args, **kwargs):
-    pkg_dir = get_package_share_directory('onboard_detector_v2')
+    pkg_dir = get_package_share_directory('jo_detector_v2')
     env = LaunchConfiguration('env').perform(context)
     detection_config_path = os.path.join(pkg_dir, 'cfg', env, 'detection.yaml')
 
@@ -73,7 +73,7 @@ def _launch_setup(context, *args, **kwargs):
         detection_params = _load_node_params(detection_config_path, 'yolo_seg_track_detector')
         yolo_nodes = [
             Node(
-                package='onboard_detector_v2',
+                package='jo_detector_v2',
                 executable='yolo_seg_track_node.py',
                 name=f'yolo_seg_track_detector_{name}',
                 output='screen',
@@ -83,7 +83,7 @@ def _launch_setup(context, *args, **kwargs):
         ]
     else:
         yolo_nodes = [Node(
-            package='onboard_detector_v2',
+            package='jo_detector_v2',
             executable='yolo_seg_track_node.py',
             name='yolo_seg_track_detector',
             output='screen',

@@ -2,14 +2,14 @@
 // Geometry helpers for fusing oriented boxes from different sensors: rotated-footprint overlap, height overlap,
 // and a range-banded voxel-centroid filter used to bring a merged point set back to the sensors' own density.
 
-#include "onboard_detector_v2/cluster_obb.hpp"
+#include "jo_detector_v2/cluster_obb.hpp"
 
 #include <array>
 #include <cstdint>
 #include <unordered_map>
 #include <vector>
 
-namespace onboard_detector_v2 {
+namespace jo_detector_v2 {
 
 // Footprint of a box on the horizontal plane (its first two axes), counter-clockwise, inflated by `margin` per side.
 inline std::vector<Eigen::Vector2d> obbFootprint(const Obb& b, double margin) {
@@ -91,7 +91,7 @@ inline double footprintIoU(const Obb& a, const Obb& b, double margin) {
 }
 
 // 3D IoU of two boxes approximated as (footprint intersection x height overlap) — the footprints are the rotated
-// rectangles, heights are the boxes' z ranges — like onboard_detector's calBoxIOU but on oriented boxes.
+// rectangles, heights are the boxes' z ranges — like jo_detector's calBoxIOU but on oriented boxes.
 // `intersection_volume` / `smaller_volume` are also returned so the IOV (intersection / volume of the smaller box) can be derived.
 struct Overlap3D {
     double iou = 0.0;
@@ -194,4 +194,4 @@ inline std::vector<Eigen::Vector3f> voxelCentroidBands(const std::vector<Eigen::
     return out;
 }
 
-}  // namespace onboard_detector_v2
+}  // namespace jo_detector_v2

@@ -6,9 +6,9 @@ One-shot ROS2 subscriber that records every message on a jo_msgs/ObstacleArray
 topic into a flat JSON time series, for offline evaluation against a manually
 annotated ground truth (see eval_tracking.py and GT_SCHEMA.md in this folder).
 
-Works unmodified against EITHER onboard_detector (v1) or onboard_detector_v2's
+Works unmodified against EITHER jo_detector (v1) or jo_detector_v2's
 tracker_node: both publish to the same topic name and message type
-(onboard_detector/tracked_dynamic_obstacles, jo_msgs/ObstacleArray) — this
+(/perception/tracked_dynamic_obstacles, jo_msgs/ObstacleArray) — this
 script does not care which pipeline produced the data, which is the whole
 point: run it once per pipeline, against the same bag, and diff the two
 resulting JSON files with the same eval_tracking.py call.
@@ -18,7 +18,7 @@ running — rviz not required):
 
     python3 extract_obstacles.py --out v2_run1.json --duration 90
     python3 extract_obstacles.py --out v1_run1.json --duration 90 \\
-        --topic /onboard_detector/tracked_dynamic_obstacles
+        --topic /perception/tracked_dynamic_obstacles
 
 Output JSON shape — a list of frames, each:
     {"t": <float, header stamp in seconds>,
@@ -72,7 +72,7 @@ class Extractor(Node):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--topic', default='/onboard_detector/tracked_dynamic_obstacles')
+    ap.add_argument('--topic', default='/perception/tracked_dynamic_obstacles')
     ap.add_argument('--out', required=True)
     ap.add_argument('--duration', type=float, default=90.0,
                      help="wall-clock seconds to record (default covers the validation_lab bag's own ~99s length)")

@@ -231,7 +231,7 @@ class _CameraContext:
 class YoloSemanticSegDetector(Node):
     def __init__(self):
         super().__init__('yolo_semantic_seg_detector')
-        self.get_logger().info("[onboardDetectorV2]: yolo semantic seg detector init...")
+        self.get_logger().info("[joDetectorV2]: yolo semantic seg detector init...")
 
         # camera_names: same convention as yolo_seg_track_detector.py/
         # static_structures_node/preprocessing_node — run_detector.launch.py
@@ -355,7 +355,7 @@ class YoloSemanticSegDetector(Node):
         # — see yolo_seg_track_detector.py's own comment on why this is
         # resolved against the package SHARE dir, not this file's own
         # install dir.
-        pkg_share = get_package_share_directory('onboard_detector_v2')
+        pkg_share = get_package_share_directory('jo_detector_v2')
         self.weights_path = os.path.join(pkg_share, self.weights_path)
         self.class_names_path = os.path.join(pkg_share, self.class_names_path)
         self.use_half = (device == "cuda")

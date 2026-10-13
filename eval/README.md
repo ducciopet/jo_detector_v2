@@ -1,14 +1,14 @@
 # Dynamic/potentially-dynamic object evaluation
 
-Evaluation harness for comparing onboard_detector (v1) and
-onboard_detector_v2's own dynamic-object classification against hand-labeled
+Evaluation harness for comparing jo_detector (v1) and
+jo_detector_v2's own dynamic-object classification against hand-labeled
 ground truth and, eventually, against external baselines (AB3DMOT, a
 SemanticKITTI-MOS method) on the same bags. Built for the paper evaluating
 the tracker's dynamic/potentially_dynamic classification — not the ground
 segmentation work in `docs/`.
 
 Both pipelines publish to the exact same topic and message type
-(`/onboard_detector/tracked_dynamic_obstacles`, `jo_msgs/ObstacleArray`), so
+(`/perception/tracked_dynamic_obstacles`, `jo_msgs/ObstacleArray`), so
 every tool here works unmodified against either one — run one pipeline at a
 time against the same bag, extract, repeat for the other, diff the results.
 

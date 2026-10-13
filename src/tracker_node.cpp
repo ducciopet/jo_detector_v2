@@ -2,7 +2,7 @@
     FILE: tracker_node.cpp
     ---------------------------------
     Tracks dbscan_detector_node's fused objects (.../fused/detections3d) across scans — a reimplementation of
-    onboard_detector's own dynamicDetector tracking core (kalmanFilterMatrixAccV2 / boxAssociation /
+    jo_detector's own dynamicDetector tracking core (kalmanFilterMatrixAccV2 / boxAssociation /
     computeAssociationScore / assignMatchesGlobally), carried over as closely as that core generalizes to v2's
     already-fused, oriented boxes:
 
@@ -239,22 +239,22 @@
     for a weaker, projection-only match — exactly what this whole session's ID-swap hardening has been guarding
     against.
 
-    Subscribes:  /onboard_detector_v2/dbscan_detector/fused/detections3d   vision_msgs/Detection3DArray
-    Publishes:   /onboard_detector_v2/tracker/tracks                       vision_msgs/Detection3DArray
+    Subscribes:  /jo_detector_v2/dbscan_detector/fused/detections3d   vision_msgs/Detection3DArray
+    Publishes:   /jo_detector_v2/tracker/tracks                       vision_msgs/Detection3DArray
                  (id = "track_<n>", results[0] = {class_id: "dynamic"|"static", score: horizontal speed [m/s]},
                  results[0].pose.pose.position = (vx, vy, vz) [m/s], vz unused for classification — same "stash
-                 extra numbers in the unused pose field" convention onboard_detector's own YOLO detection callback
+                 extra numbers in the unused pose field" convention jo_detector's own YOLO detection callback
                  uses for pixel coords; results[1] = {class_id: <YOLO class name>, score: vote fraction}, present
                  only once a YOLO leaf has ever refined this track. Only CONFIRMED, matched-this-tick, non-static
                  (or class-exempt) tracks are published — see STATIC TRACKS MUST DIE above.
-                 /onboard_detector_v2/tracker/tracks_markers                visualization_msgs/MarkerArray
+                 /jo_detector_v2/tracker/tracks_markers                visualization_msgs/MarkerArray
                  (box edges + a velocity arrow + an id/[DYN|POT|STA] tag/class/speed label — dynamic=blue,
                  potentially_dynamic=green, static=neutral grey, v1 parity, see appendTrackMarkers()'s own
                  comment)
-                 /onboard_detector/tracked_dynamic_obstacles                 jo_msgs/ObstacleArray
+                 /perception/tracked_dynamic_obstacles                 jo_msgs/ObstacleArray
                  (pub_obstacles_ — the pre-existing, stable interface glim_ros2's own BBOX dynamic-rejection
                  mode (dynamic_rejection_type=="BBOX" in config_ros.json) already subscribes to; v1's own
-                 onboard_detector published this same topic/type, GLIM-side needs no change at all to pick v2
+                 jo_detector published this same topic/type, GLIM-side needs no change at all to pick v2
                  up instead. Only dynamic/potentially_dynamic tracks are published here — v1's own
                  publishDynamicObstacleArray() skips static tracks outright, matched here. See publish()'s own
                  comment on the field mapping.)
@@ -288,7 +288,7 @@
 namespace {
 
 // Constant-acceleration Kalman filter, state = [x,y,z, vx,vy,vz, ax,ay,az]; observation = [x,y,z]. Mirrors
-// onboard_detector's kalmanFilterMatrixAccV2 (there: x,y only) — same A/H/Q/R structure, extended to z.
+// jo_detector's kalmanFilterMatrixAccV2 (there: x,y only) — same A/H/Q/R structure, extended to z.
 class TrackKF {
 public:
     void init(const Eigen::Vector3d& pos, double p_init) {
@@ -337,7 +337,7 @@ public:
 };
 
 // Axis-aligned world-frame footprint of an OBB (bounding rectangle of its 4 rotated corners) — the natural
-// generalization of onboard_detector's own x_width/y_width, which were already axis-aligned.
+// generalization of jo_detector's own x_width/y_width, which were already axis-aligned.
 struct Footprint {
     double xmin, xmax, ymin, ymax, zmin, zmax;
 };
@@ -448,7 +448,7 @@ struct Track {
     std::deque<Eigen::Vector3d> pos_hist;
 };
 
-// Kuhn's algorithm augmenting-path search — mirrors onboard_detector's own tryAugmentDetectionMatch/
+// Kuhn's algorithm augmenting-path search — mirrors jo_detector's own tryAugmentDetectionMatch/
 // assignMatchesGlobally: candidates arrive best-score-first, each detection tries its candidate tracks in that
 // order and steals one from a worse-matched detection if needed.
 bool tryAugment(size_t det, const std::vector<std::vector<size_t>>& candidates_by_det, std::vector<int>& track_to_det,
@@ -575,7 +575,7 @@ public:
         // points, corroborating (not replacing) the plain speed check for a track with no classification
         // evidence of its own — see the matched-branch comment on how this, kf_vel_confident, and the plain
         // speed check combine. Needs dbscan_detector_node's fused/clusters cloud (det_idx field).
-        fused_clusters_topic_ = declare_parameter<std::string>("fused_clusters_topic", "/onboard_detector_v2/dbscan_detector/fused/clusters");
+        fused_clusters_topic_ = declare_parameter<std::string>("fused_clusters_topic", "/jo_detector_v2/dbscan_detector/fused/clusters");
         point_vote_thresh_ = declare_parameter<double>("track_point_vote_thresh", 0.7);         // v1: dynaVoteThresh_
         point_vote_max_points_ = declare_parameter<int>("track_point_vote_max_points", 500);    // cap — brute-force nearest-neighbor is O(n*m); v1 never capped this (its own clusters were smaller), this file's can be larger (LiDAR walls, etc.)
         point_vote_max_age_ = declare_parameter<double>("point_vote_max_age", 0.5);  // [s] ignore a stale clusters cloud (same convention as yolo2d_max_age)
@@ -798,12 +798,12 @@ public:
                 [cam_ptr](const vision_msgs::msg::Detection2DArray::ConstSharedPtr& msg) { cam_ptr->latest_2d = msg; });
         }
 
-        pub_tracks_ = create_publisher<vision_msgs::msg::Detection3DArray>("/onboard_detector_v2/tracker/tracks", rclcpp::QoS(10));
-        pub_markers_ = create_publisher<visualization_msgs::msg::MarkerArray>("/onboard_detector_v2/tracker/tracks_markers", rclcpp::QoS(10));
+        pub_tracks_ = create_publisher<vision_msgs::msg::Detection3DArray>("/jo_detector_v2/tracker/tracks", rclcpp::QoS(10));
+        pub_markers_ = create_publisher<visualization_msgs::msg::MarkerArray>("/jo_detector_v2/tracker/tracks_markers", rclcpp::QoS(10));
         // jo_msgs/ObstacleArray — see the file header's own comment: the pre-existing stable interface
         // glim_ros2's BBOX dynamic-rejection mode already subscribes to (its own bbox_topic config, default
         // matches this default exactly) to strip dynamic/potentially-dynamic points out of its own map.
-        obstacles_topic_ = declare_parameter<std::string>("track_obstacles_topic", "/onboard_detector/tracked_dynamic_obstacles");
+        obstacles_topic_ = declare_parameter<std::string>("track_obstacles_topic", "/perception/tracked_dynamic_obstacles");
         pub_obstacles_ = create_publisher<jo_msgs::msg::ObstacleArray>(obstacles_topic_, rclcpp::QoS(10));
         // Point-cloud motion voting's own input (see the constructor's own comment above) — just the latest
         // message cached, matched against each tick's own detections by stamp (see parsePointsByDetection()).
@@ -813,7 +813,7 @@ public:
             fused_clusters_topic_, rclcpp::SensorDataQoS(),
             [this](const sensor_msgs::msg::PointCloud2::ConstSharedPtr& msg) { latest_clusters_ = msg; });
         sub_ = create_subscription<vision_msgs::msg::Detection3DArray>(
-            "/onboard_detector_v2/dbscan_detector/fused/detections3d", rclcpp::QoS(10),
+            "/jo_detector_v2/dbscan_detector/fused/detections3d", rclcpp::QoS(10),
             [this](const vision_msgs::msg::Detection3DArray::ConstSharedPtr& msg) { onFused(msg); });
 
         RCLCPP_INFO(get_logger(), "tracker_node ready: max_match_dist=%.2f max_match_speed=%.2f min_hits=%d max_missed=%d max_missed_classified=%d",

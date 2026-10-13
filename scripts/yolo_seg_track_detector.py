@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-"""YOLO instance-segmentation + tracking node — onboard_detector_v2's Phase 2
+"""YOLO instance-segmentation + tracking node — jo_detector_v2's Phase 2
 prototype (see ../README.md's phase plan: "replace YOLOv11 (bounding boxes)
 with a YOLO segmentation model"). This node gets segmentation + per-instance
 tracking working and publishing on EVERY camera in camera_names; it does NOT
@@ -43,7 +43,7 @@ handing it more than one camera_names entry at a time. (Separately, the
 timer itself turned out to have its own, independent loss source — see
 the "Processing is WORKER-THREAD-DRIVEN" section below.)
 
-Unlike onboard_detector/scripts/yolo_detector/yolov11_detector.py, inference
+Unlike jo_detector/scripts/yolo_detector/yolov11_detector.py, inference
 does NOT hand-roll PIL/torch resizing or NMS — model.track() accepts a raw
 BGR numpy frame directly and does its own preprocessing, tracking and
 per-class filtering (via `classes=`) internally. That hand-rolled path in
@@ -83,13 +83,13 @@ got only one of.
 
 Layout: the NODE is yolo_seg_track_node.py, in src/ alongside every other
 node's source (preprocessing_node.cpp, static_structures_node.cpp,
-calibration_icp_node.cpp) and installed to lib/onboard_detector_v2/ like
+calibration_icp_node.cpp) and installed to lib/jo_detector_v2/ like
 their executables — that's the thin entrypoint ros2 run actually invokes.
 This file is the SCRIPT it wraps: the detection/tracking implementation,
-under scripts/ (share/onboard_detector_v2/scripts/ once installed, found
+under scripts/ (share/jo_detector_v2/scripts/ once installed, found
 at runtime via get_package_share_directory — see yolo_seg_track_node.py).
 weights_path/class_names_path below are resolved the same way, against
-share/onboard_detector_v2/ (weights/ and cfg/ are their own top-level
+share/jo_detector_v2/ (weights/ and cfg/ are their own top-level
 install destinations, not installed next to scripts/).
 """
 
@@ -119,7 +119,7 @@ def _to_image_msg(cv_img, encoding, header):
     against numpy 1.x — encoding_to_cvtype2()'s dtype lookup then returns a
     cv_type not in cv_bridge's own cvtype_to_name table, and cv2_to_imgmsg
     raises `KeyError: 16` for EVERY image, regardless of content (confirmed
-    against onboard_detector's own yolov11_detector.py publish path too, so
+    against jo_detector's own yolov11_detector.py publish path too, so
     this isn't new to this node). A plain sensor_msgs/Image has no
     OpenCV-side type checking to trip over: encoding just needs to match
     cv_img's actual dtype/channel count, which the caller controls."""
@@ -161,7 +161,7 @@ class _CameraContext:
 class YoloSegTrackDetector(Node):
     def __init__(self):
         super().__init__('yolo_seg_track_detector')
-        self.get_logger().info("[onboardDetectorV2]: yolo seg+track detector init...")
+        self.get_logger().info("[joDetectorV2]: yolo seg+track detector init...")
 
         # camera_names: same convention as static_structures_node/preprocessing_node
         # — run_detector.launch.py overrides this from preprocessing.yaml's
@@ -216,8 +216,8 @@ class YoloSegTrackDetector(Node):
         # 'weights/yolo11n-seg.pt', 'cfg/coco.names') — resolved against the
         # PACKAGE SHARE dir, not this file's own install dir (lib/), since
         # weights/ and cfg/ are their own install(DIRECTORY ...)
-        # destinations under share/onboard_detector_v2/. See file header.
-        pkg_share = get_package_share_directory('onboard_detector_v2')
+        # destinations under share/jo_detector_v2/. See file header.
+        pkg_share = get_package_share_directory('jo_detector_v2')
         self.weights_path = os.path.join(pkg_share, self.weights_path)
         self.class_names_path = os.path.join(pkg_share, self.class_names_path)
         self.use_half = (device == "cuda")
@@ -225,7 +225,7 @@ class YoloSegTrackDetector(Node):
         with open(self.class_names_path, 'r') as f:
             self.label_names = [line.strip() for line in f.readlines()]
         # Ultralytics filters by class INDEX, not name — resolve
-        # target_classes (names, matches onboard_detector's own param
+        # target_classes (names, matches jo_detector's own param
         # convention) against class_names_path once at startup instead of
         # filtering every detection post-hoc.
         self.target_class_ids = [

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(onboard_detector_v2)
+project(jo_detector_v2)
 
 if(POLICY CMP0144)
   cmake_policy(SET CMP0144 NEW)
@@ -24,7 +24,7 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 # find_package()/ament_target_dependencies entries as later phases are built
 # (vision_msgs/jo_msgs for detection and tracking messages,
 # rosidl_default_generators if a srv/msg is added back, ...) instead of
-# front-loading everything from onboard_detector/CMakeLists.txt now.
+# front-loading everything from jo_detector/CMakeLists.txt now.
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
@@ -52,7 +52,7 @@ find_package(jo_msgs REQUIRED)
 
 # gtsam / gtsam_points: used by calibration_icp_node for GICP-based
 # depth<->lidar registration (same registration stack already required by
-# the glim submodule, see glim/CMakeLists.txt, and by onboard_detector's own
+# the glim submodule, see glim/CMakeLists.txt, and by jo_detector's own
 # calibration_icp_node — this is a straight port of that node).
 find_package(GTSAM 4.2 REQUIRED)
 find_package(gtsam_points 1.2.0 REQUIRED)
@@ -122,13 +122,13 @@ target_link_libraries(static_structures_node
   ${PCL_LIBRARIES}
 )
 
-# calibration_icp_node: straight port of onboard_detector's node (see
-# ../onboard_detector/src/calibration_icp_node.cpp) — same gtsam_points/GICP
+# calibration_icp_node: straight port of jo_detector's node (see
+# ../jo_detector/src/calibration_icp_node.cpp) — same gtsam_points/GICP
 # registration, same manual lidar/depth sync (message_filters::Synchronizer
 # doesn't work here, see the comment on lidar_cache_ in the file itself).
 # Only change: parameter names no longer carry the stale
-# "onboard_detector." prefix (depth_intrinsics, not
-# onboard_detector.depth_intrinsics). realsense2_camera_msgs added for its
+# "jo_detector." prefix (depth_intrinsics, not
+# jo_detector.depth_intrinsics). realsense2_camera_msgs added for its
 # own native-cloud path's depth<->color extrinsic (see the file's own
 # comments on depth_cloud_topic_/T_depth_color_) — same message
 # preprocessing_node already depends on, for the identical purpose.
@@ -225,7 +225,7 @@ install(DIRECTORY rviz/
 # (PROGRAMS, so ros2 run can find it). The actual implementation is a SCRIPT
 # each imports at runtime (via get_package_share_directory, not
 # sys.path-of-this-file) — installed separately under
-# share/${PROJECT_NAME}/scripts/, same split onboard_detector/CMakeLists.txt
+# share/${PROJECT_NAME}/scripts/, same split jo_detector/CMakeLists.txt
 # uses for its own yolo_detector/ scripts.
 install(PROGRAMS
   src/yolo_seg_track_node.py

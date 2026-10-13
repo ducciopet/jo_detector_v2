@@ -1,7 +1,7 @@
 #pragma once
 // Grid-accelerated DBSCAN + 3D oriented bounding boxes (OBB), header-only.
 //
-// DBSCAN: same core/border/noise semantics as onboard_detector's dbscan.cpp
+// DBSCAN: same core/border/noise semantics as jo_detector's dbscan.cpp
 // (min_pts counts the point itself), but neighbours come from a hash grid with
 // cell size = the largest eps (27 cells per query) instead of a brute-force
 // O(n^2) scan. eps can vary per point (range-adaptive: a rotating LiDAR's
@@ -33,7 +33,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace onboard_detector_v2 {
+namespace jo_detector_v2 {
 
 struct Obb {
     Eigen::Vector3d center = Eigen::Vector3d::Zero();
@@ -178,4 +178,4 @@ inline Obb computeObb(const std::vector<Eigen::Vector3f>& pts, const std::vector
     return box;
 }
 
-}  // namespace onboard_detector_v2
+}  // namespace jo_detector_v2

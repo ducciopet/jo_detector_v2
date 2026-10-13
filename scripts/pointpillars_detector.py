@@ -273,7 +273,7 @@ def points_to_pillars(points_xyz, point_cloud_range, voxel_size, grid_size,
 class PointPillarsDetector(Node):
     def __init__(self):
         super().__init__('pointpillars_detector')
-        self.get_logger().info("[onboardDetectorV2]: pointpillars detector init...")
+        self.get_logger().info("[joDetectorV2]: pointpillars detector init...")
 
         self.cloud_topic = str(self.declare_parameter('cloud_topic', '/velodyne_points').value)
         self.odom_topic = str(self.declare_parameter('odom_topic', '/odometry/filtered').value)
